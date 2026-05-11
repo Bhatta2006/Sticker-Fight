@@ -1,0 +1,10 @@
+firecrawl-py
+pydantic
+openai
+redis
+aiohttp
+beautifulsoup4
+tqdm
+tenacity
+click
+python-dotenv
