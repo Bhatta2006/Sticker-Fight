@@ -31,7 +31,7 @@ interface Sticker {
   sourceName?: string | null;
   originalUrl?: string | null;
   dominantEmotion?: string | null;
-  emotionScores?: Record<string, number> | null;
+  emotionScores?: unknown;
   energyLevel?: string | null;
   tone?: string[];
   tags?: string[];
