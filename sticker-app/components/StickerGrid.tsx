@@ -2,16 +2,18 @@
 
 import { CldImage } from "next-cloudinary";
 import StickerUploader from "./StickerUploader";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Images } from "lucide-react";
 import { useIngestStore } from "@/lib/ingest-store";
+import { Button } from "@/components/ui/button";
 
 interface Sticker {
   id: string;
   slug: string;
   title: string;
+  description?: string | null;
   category: string;
   subCategory: string | null;
   rarity: string;
@@ -19,7 +21,41 @@ interface Sticker {
   cloudinaryUrl: string;
   thumbnailUrl: string;
   type: string;
+  fileSizeKb?: number | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
+  durationMs?: number | null;
+  ocrText?: string | null;
+  languages?: string[];
+  hasTextOverlay?: boolean | null;
+  sourceName?: string | null;
+  originalUrl?: string | null;
+  dominantEmotion?: string | null;
+  emotionScores?: Record<string, number> | null;
+  energyLevel?: string | null;
+  tone?: string[];
+  tags?: string[];
+  scenarioFit?: string[];
+  useCase?: string | null;
+  phash?: string | null;
+  isNsfw?: boolean | null;
+  nsfwScore?: number | null;
+  moderationNotes?: string | null;
   verifiedBy?: string | null;
+  verifiedAt?: string | Date | null;
+  baseScoreWeight?: number | null;
+  playCount?: number | null;
+  winCount?: number | null;
+  voteCount?: number | null;
+  avgClipScore?: number | null;
+  avgVoteScore?: number | null;
+  hypeCount?: number | null;
+  timesFavourited?: number | null;
+  reportCount?: number | null;
+  isFlagged?: boolean | null;
+  clipTags?: string[];
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
 }
 
 interface UploadResult {
@@ -50,6 +86,19 @@ const rarityClass = (r: string) => {
 
 export default function StickerGrid({ stickers: initial }: StickerGridProps) {
   const [stickers] = useState(initial);
+  const [active, setActive] = useState<Sticker | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(null);
+    };
+    document.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [active]);
   const router = useRouter();
   const { setQueue } = useIngestStore();
 
@@ -115,6 +164,64 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
     router.push("/admin/ingest/review");
   }
 
+  const formatValue = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return "—";
+    if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+    if (typeof value === "object") return JSON.stringify(value, null, 2);
+    if (typeof value === "boolean") return value ? "true" : "false";
+    return String(value);
+  };
+
+  const detailRows = (s: Sticker) =>
+    [
+      ["ID", s.id],
+      ["Slug", s.slug],
+      ["Title", s.title],
+      ["Description", s.description],
+      ["Category", s.category],
+      ["Sub-category", s.subCategory],
+      ["Type", s.type],
+      ["Rarity", s.rarity],
+      ["Is live", s.isLive],
+      ["Cloudinary URL", s.cloudinaryUrl],
+      ["Thumbnail URL", s.thumbnailUrl],
+      ["Width (px)", s.widthPx],
+      ["Height (px)", s.heightPx],
+      ["File size (KB)", s.fileSizeKb],
+      ["Duration (ms)", s.durationMs],
+      ["OCR text", s.ocrText],
+      ["Has text overlay", s.hasTextOverlay],
+      ["Languages", s.languages],
+      ["Tone", s.tone],
+      ["Tags", s.tags],
+      ["Scenario fit", s.scenarioFit],
+      ["Use case", s.useCase],
+      ["Dominant emotion", s.dominantEmotion],
+      ["Emotion scores", s.emotionScores],
+      ["Energy level", s.energyLevel],
+      ["Source name", s.sourceName],
+      ["Original URL", s.originalUrl],
+      ["pHash", s.phash],
+      ["NSFW", s.isNsfw],
+      ["NSFW score", s.nsfwScore],
+      ["Moderation notes", s.moderationNotes],
+      ["Verified by", s.verifiedBy],
+      ["Verified at", s.verifiedAt],
+      ["Base score weight", s.baseScoreWeight],
+      ["Play count", s.playCount],
+      ["Win count", s.winCount],
+      ["Vote count", s.voteCount],
+      ["Avg clip score", s.avgClipScore],
+      ["Avg vote score", s.avgVoteScore],
+      ["Hype count", s.hypeCount],
+      ["Times favourited", s.timesFavourited],
+      ["Report count", s.reportCount],
+      ["Is flagged", s.isFlagged],
+      ["Clip tags", s.clipTags],
+      ["Created at", s.createdAt],
+      ["Updated at", s.updatedAt],
+    ] as const;
+
   return (
     <div>
       {/* Header */}
@@ -142,9 +249,11 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {stickers.map((s) => (
-            <div
+            <button
               key={s.id}
-              className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors"
+              type="button"
+              onClick={() => setActive(s)}
+              className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors text-left"
             >
               {/* Thumbnail */}
               <div className="relative aspect-square bg-muted">
@@ -187,8 +296,67 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      {active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            className="w-full max-w-4xl overflow-hidden rounded-xl border border-border bg-background shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  {active.title || "Sticker details"}
+                </h2>
+                <p className="text-xs text-muted-foreground">{active.slug}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActive(null)}
+              >
+                Close
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[260px_1fr]">
+              <div className="space-y-2">
+                <div className="aspect-square rounded-lg border border-border bg-muted overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={active.thumbnailUrl || active.cloudinaryUrl}
+                    alt={active.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="text-[11px] text-muted-foreground break-all">
+                  {active.cloudinaryUrl}
+                </div>
+              </div>
+
+              <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
+                <div className="divide-y divide-border">
+                  {detailRows(active).map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="grid grid-cols-1 gap-1 px-3 py-2 md:grid-cols-[180px_1fr]"
+                    >
+                      <div className="text-xs font-medium text-muted-foreground">
+                        {label}
+                      </div>
+                      <div className="text-xs text-foreground whitespace-pre-wrap break-words">
+                        {formatValue(value)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
