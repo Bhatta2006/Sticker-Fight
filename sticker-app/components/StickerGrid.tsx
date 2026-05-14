@@ -87,6 +87,10 @@ const rarityClass = (r: string) => {
 export default function StickerGrid({ stickers: initial }: StickerGridProps) {
   const [stickers] = useState(initial);
   const [active, setActive] = useState<Sticker | null>(null);
+  const [filterAdmin, setFilterAdmin] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [filterLive, setFilterLive] = useState("all");
   useEffect(() => {
     if (!active) return;
     const handler = (e: KeyboardEvent) => {
@@ -222,6 +226,27 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
       ["Updated at", s.updatedAt],
     ] as const;
 
+  const adminOptions = Array.from(
+    new Set(stickers.map((s) => s.verifiedBy).filter(Boolean) as string[]),
+  ).sort();
+  const categoryOptions = Array.from(
+    new Set(stickers.map((s) => s.category).filter(Boolean)),
+  ).sort();
+  const typeOptions = Array.from(
+    new Set(stickers.map((s) => s.type).filter(Boolean)),
+  ).sort();
+
+  const filteredStickers = stickers.filter((s) => {
+    if (filterAdmin !== "all" && s.verifiedBy !== filterAdmin) return false;
+    if (filterCategory !== "all" && s.category !== filterCategory) return false;
+    if (filterType !== "all" && s.type !== filterType) return false;
+    if (filterLive !== "all") {
+      const liveFlag = filterLive === "live";
+      if (s.isLive !== liveFlag) return false;
+    }
+    return true;
+  });
+
   return (
     <div>
       {/* Header */}
@@ -231,24 +256,84 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Stickers</h1>
             <p className="text-sm text-muted-foreground">
-              {stickers.length} stickers
+              {filteredStickers.length} of {stickers.length} stickers
             </p>
           </div>
         </div>
         <StickerUploader onUpload={handleUpload} onReview={handleReview} />
       </div>
 
-      {stickers.length === 0 ? (
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <label className="space-y-1">
+          <span className="text-xs text-muted-foreground">Admin</span>
+          <select
+            value={filterAdmin}
+            onChange={(e) => setFilterAdmin(e.target.value)}
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All</option>
+            {adminOptions.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs text-muted-foreground">Category</span>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All</option>
+            {categoryOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs text-muted-foreground">Type</span>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All</option>
+            {typeOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs text-muted-foreground">Live status</span>
+          <select
+            value={filterLive}
+            onChange={(e) => setFilterLive(e.target.value)}
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All</option>
+            <option value="live">Live</option>
+            <option value="draft">Draft</option>
+          </select>
+        </label>
+      </div>
+
+      {filteredStickers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card py-20 text-center space-y-2">
           <p className="text-4xl">🎴</p>
-          <p className="text-sm text-muted-foreground">No stickers yet.</p>
+          <p className="text-sm text-muted-foreground">No stickers found.</p>
           <p className="text-xs text-muted-foreground/60">
             Click &ldquo;Upload Stickers&rdquo; to get started.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {stickers.map((s) => (
+          {filteredStickers.map((s) => (
             <button
               key={s.id}
               type="button"
