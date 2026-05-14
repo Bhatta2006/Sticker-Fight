@@ -9,8 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Search, SlidersHorizontal, PackagePlus, CheckSquare, Square,
-  Layers, ChevronDown, ChevronUp, AlertCircle, Loader2, ShoppingBag,
+  Search,
+  SlidersHorizontal,
+  PackagePlus,
+  CheckSquare,
+  Square,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  Loader2,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +88,15 @@ export default function IngestSearchClient() {
       const res = await fetch("/api/stickerly/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword, limit, sortBy, stickerType, searchBy, minStickerCount: minCount, extendSearch }),
+        body: JSON.stringify({
+          keyword,
+          limit,
+          sortBy,
+          stickerType,
+          searchBy,
+          minStickerCount: minCount,
+          extendSearch,
+        }),
       });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const data = await res.json();
@@ -140,7 +157,10 @@ export default function IngestSearchClient() {
     });
   };
 
-  const totalSelected = Array.from(selected.values()).reduce((sum, s) => sum + s.size, 0);
+  const totalSelected = Array.from(selected.values()).reduce(
+    (sum, s) => sum + s.size,
+    0,
+  );
 
   // ── Proceed to review ──────────────────────────────────────────────────────
 
@@ -160,6 +180,7 @@ export default function IngestSearchClient() {
           sha: sticker.sha,
           isAnimated: pack.isAnimated,
           isDuplicate: duplicates.has(sticker.sha),
+          sourceType: "stickerly",
         });
       }
     }
@@ -205,8 +226,16 @@ export default function IngestSearchClient() {
                 className="w-full h-9 rounded-md border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <Button onClick={handleSearch} disabled={loading || !keyword.trim()} className="gap-2 shrink-0">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            <Button
+              onClick={handleSearch}
+              disabled={loading || !keyword.trim()}
+              className="gap-2 shrink-0"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
               Search
             </Button>
             <Button
@@ -229,7 +258,9 @@ export default function IngestSearchClient() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {SORT_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1">
@@ -239,7 +270,9 @@ export default function IngestSearchClient() {
                   onChange={(e) => setStickerType(e.target.value)}
                   className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {TYPE_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+                  {TYPE_OPTIONS.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1">
@@ -249,11 +282,15 @@ export default function IngestSearchClient() {
                   onChange={(e) => setSearchBy(e.target.value)}
                   className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {SEARCH_BY_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+                  {SEARCH_BY_OPTIONS.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">Max results</span>
+                <span className="text-xs text-muted-foreground">
+                  Max results
+                </span>
                 <input
                   type="number"
                   min={5}
@@ -264,7 +301,9 @@ export default function IngestSearchClient() {
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">Min stickers/pack</span>
+                <span className="text-xs text-muted-foreground">
+                  Min stickers/pack
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -281,7 +320,9 @@ export default function IngestSearchClient() {
                   onChange={(e) => setExtendSearch(e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                <span className="text-sm text-muted-foreground">Extend search</span>
+                <span className="text-sm text-muted-foreground">
+                  Extend search
+                </span>
               </label>
             </div>
           )}
@@ -308,7 +349,10 @@ export default function IngestSearchClient() {
               <CardContent>
                 <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                   {Array.from({ length: 8 }).map((_, j) => (
-                    <div key={j} className="aspect-square rounded-lg bg-muted animate-pulse" />
+                    <div
+                      key={j}
+                      className="aspect-square rounded-lg bg-muted animate-pulse"
+                    />
                   ))}
                 </div>
               </CardContent>
@@ -331,14 +375,28 @@ export default function IngestSearchClient() {
 
           {packs.map((pack) => {
             const packSelected = selected.get(pack.packId);
-            const nonDupStickers = pack.stickers.filter((s) => !duplicates.has(s.sha));
-            const allPackSelected = nonDupStickers.length > 0 && nonDupStickers.every((s) => packSelected?.has(s.sha));
-            const somePackSelected = nonDupStickers.some((s) => packSelected?.has(s.sha));
+            const nonDupStickers = pack.stickers.filter(
+              (s) => !duplicates.has(s.sha),
+            );
+            const allPackSelected =
+              nonDupStickers.length > 0 &&
+              nonDupStickers.every((s) => packSelected?.has(s.sha));
+            const somePackSelected = nonDupStickers.some((s) =>
+              packSelected?.has(s.sha),
+            );
             const packExpanded = expandedPacks.has(pack.packId);
-            const dupCount = pack.stickers.filter((s) => duplicates.has(s.sha)).length;
+            const dupCount = pack.stickers.filter((s) =>
+              duplicates.has(s.sha),
+            ).length;
 
             return (
-              <Card key={pack.packId} className={cn("transition-colors", somePackSelected && "border-primary/40")}>
+              <Card
+                key={pack.packId}
+                className={cn(
+                  "transition-colors",
+                  somePackSelected && "border-primary/40",
+                )}
+              >
                 {/* Pack header */}
                 <CardHeader className="pb-0">
                   <div className="flex items-center gap-3 flex-wrap">
@@ -349,12 +407,13 @@ export default function IngestSearchClient() {
                       className="shrink-0 text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
                       title="Select entire pack"
                     >
-                      {allPackSelected
-                        ? <CheckSquare className="h-5 w-5 text-primary" />
-                        : somePackSelected
-                        ? <CheckSquare className="h-5 w-5 text-primary/50" />
-                        : <Square className="h-5 w-5" />
-                      }
+                      {allPackSelected ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : somePackSelected ? (
+                        <CheckSquare className="h-5 w-5 text-primary/50" />
+                      ) : (
+                        <Square className="h-5 w-5" />
+                      )}
                     </button>
 
                     {/* Pack info */}
@@ -364,7 +423,10 @@ export default function IngestSearchClient() {
                           {pack.name}
                         </CardTitle>
                         {pack.isAnimated && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] px-1.5 py-0"
+                          >
                             Animated
                           </Badge>
                         )}
@@ -380,26 +442,29 @@ export default function IngestSearchClient() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        by {pack.authorName} · {pack.stickers.length} stickers
-                        · {pack.viewCount.toLocaleString()} views
-                        · {pack.exportCount.toLocaleString()} exports
+                        by {pack.authorName} · {pack.stickers.length} stickers ·{" "}
+                        {pack.viewCount.toLocaleString()} views ·{" "}
+                        {pack.exportCount.toLocaleString()} exports
                       </p>
                     </div>
 
                     {/* Expand toggle */}
                     <button
-                      onClick={() => setExpandedPacks((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(pack.packId)) next.delete(pack.packId);
-                        else next.add(pack.packId);
-                        return next;
-                      })}
+                      onClick={() =>
+                        setExpandedPacks((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(pack.packId)) next.delete(pack.packId);
+                          else next.add(pack.packId);
+                          return next;
+                        })
+                      }
                       className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {packExpanded
-                        ? <ChevronUp className="h-4 w-4" />
-                        : <ChevronDown className="h-4 w-4" />
-                      }
+                      {packExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </CardHeader>
@@ -418,14 +483,16 @@ export default function IngestSearchClient() {
                               key={sticker.sha}
                               onClick={() => toggleSticker(pack, sticker.sha)}
                               disabled={isDup}
-                              title={isDup ? "Already in database" : sticker.file}
+                              title={
+                                isDup ? "Already in database" : sticker.file
+                              }
                               className={cn(
                                 "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
                                 isDup
                                   ? "opacity-40 cursor-not-allowed border-amber-500/50"
                                   : isSel
-                                  ? "border-primary ring-2 ring-primary/30"
-                                  : "border-border hover:border-primary/50"
+                                    ? "border-primary ring-2 ring-primary/30"
+                                    : "border-border hover:border-primary/50",
                               )}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -460,7 +527,9 @@ export default function IngestSearchClient() {
                           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
                         >
                           <Layers className="h-3.5 w-3.5" />
-                          {allPackSelected ? "Deselect all" : `Select all ${nonDupStickers.length} available`}
+                          {allPackSelected
+                            ? "Deselect all"
+                            : `Select all ${nonDupStickers.length} available`}
                         </button>
                         <a
                           href={pack.shareUrl}
@@ -485,8 +554,12 @@ export default function IngestSearchClient() {
       {!loading && packs.length === 0 && keyword && !error && (
         <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center space-y-2">
           <Search className="h-8 w-8 text-muted-foreground/40 mx-auto" />
-          <p className="text-sm text-muted-foreground">No packs found for &ldquo;{keyword}&rdquo;</p>
-          <p className="text-xs text-muted-foreground/60">Try different keywords or filters</p>
+          <p className="text-sm text-muted-foreground">
+            No packs found for &ldquo;{keyword}&rdquo;
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Try different keywords or filters
+          </p>
         </div>
       )}
 

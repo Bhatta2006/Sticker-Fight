@@ -14,13 +14,16 @@ const STICKERS_FOLDER = "sticker-fight/stickers";
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as { role?: string; name?: string; id?: string };
-  if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const adminKey = user.name ?? user.id ?? "admin";
+  if (user.role !== "admin")
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const {
-    sourceUrl,          // original stickerly URL
+    sourceUrl, // original stickerly URL
     title,
     description,
     category,
@@ -41,7 +44,10 @@ export async function POST(req: Request) {
   } = body;
 
   if (!sourceUrl || !title || !category) {
-    return NextResponse.json({ error: "sourceUrl, title, category are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "sourceUrl, title, category are required" },
+      { status: 400 },
+    );
   }
 
   // Compute SHA256 of the source URL as our phash (dedup key for scraped stickers)
@@ -50,7 +56,10 @@ export async function POST(req: Request) {
   // Check duplicate
   const existing = await prisma.sticker.findUnique({ where: { phash: sha } });
   if (existing) {
-    return NextResponse.json({ error: "duplicate", existingId: existing.id }, { status: 409 });
+    return NextResponse.json(
+      { error: "duplicate", existingId: existing.id },
+      { status: 409 },
+    );
   }
 
   // Upload to Cloudinary by URL (no download needed — Cloudinary fetches it)
@@ -63,18 +72,21 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[ingest/upload] Cloudinary error", err);
-    return NextResponse.json({ error: "Cloudinary upload failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Cloudinary upload failed" },
+      { status: 500 },
+    );
   }
 
   const isAnimated =
-    cloudResult.resource_type === "video" ||
-    cloudResult.format === "gif";
+    cloudResult.resource_type === "video" || cloudResult.format === "gif";
 
-  const type = cloudResult.resource_type === "video"
-    ? "video"
-    : cloudResult.format === "gif"
-    ? "gif"
-    : "image";
+  const type =
+    cloudResult.resource_type === "video"
+      ? "video"
+      : cloudResult.format === "gif"
+        ? "gif"
+        : "image";
 
   // Generate thumbnail URL via Cloudinary transform
   const thumbnailUrl = cloudinary.url(cloudResult.public_id, {
@@ -106,9 +118,10 @@ export async function POST(req: Request) {
       fileSizeKb: Math.round((cloudResult.bytes ?? 0) / 1024),
       widthPx: cloudResult.width ?? null,
       heightPx: cloudResult.height ?? null,
-      durationMs: isAnimated && cloudResult.duration
-        ? Math.round(cloudResult.duration * 1000)
-        : null,
+      durationMs:
+        isAnimated && cloudResult.duration
+          ? Math.round(cloudResult.duration * 1000)
+          : null,
       title,
       description: description ?? null,
       ocrText: ocrText ?? null,
@@ -130,10 +143,17 @@ export async function POST(req: Request) {
       isNsfw: false,
       nsfwScore: 0,
       moderationNotes: moderationNotes ?? null,
-      verifiedBy: user.name ?? user.id ?? "admin",
+      verifiedBy: adminKey,
       verifiedAt: isLive ? new Date() : null,
       rarity: rarity ?? "common",
-      baseScoreWeight: rarity === "legendary" ? 2.0 : rarity === "rare" ? 1.5 : rarity === "uncommon" ? 1.2 : 1.0,
+      baseScoreWeight:
+        rarity === "legendary"
+          ? 2.0
+          : rarity === "rare"
+            ? 1.5
+            : rarity === "uncommon"
+              ? 1.2
+              : 1.0,
     },
   });
 

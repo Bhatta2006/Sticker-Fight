@@ -9,6 +9,16 @@ export interface StickerItem {
   sha: string;
   isAnimated: boolean;
   isDuplicate: boolean;
+  sourceType: "stickerly" | "manual";
+  cloudinary?: {
+    url: string;
+    thumbnailUrl?: string;
+    type: "image" | "gif" | "video";
+    width?: number;
+    height?: number;
+    bytes?: number;
+    duration?: number;
+  };
 }
 
 interface IngestState {

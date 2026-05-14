@@ -518,29 +518,63 @@ export default function IngestReviewClient() {
     setResults((r) => ({ ...r, [currentIndex]: { status: "uploading" } }));
 
     try {
-      const res = await fetch("/api/ingest/upload", {
+      const isManual = current.sourceType === "manual";
+      const endpoint = isManual ? "/api/stickers" : "/api/ingest/upload";
+      const payload = isManual
+        ? {
+            cloudinaryUrl: current.cloudinary?.url ?? current.url,
+            thumbnailUrl: current.cloudinary?.thumbnailUrl,
+            type: current.cloudinary?.type ?? "image",
+            widthPx: current.cloudinary?.width,
+            heightPx: current.cloudinary?.height,
+            fileSizeKb: current.cloudinary?.bytes
+              ? Math.round(current.cloudinary.bytes / 1024)
+              : undefined,
+            durationMs: current.cloudinary?.duration
+              ? Math.round(current.cloudinary.duration * 1000)
+              : undefined,
+            title: form.title.trim(),
+            description: form.description.trim() || undefined,
+            category: form.category,
+            subCategory: form.subCategory.trim() || undefined,
+            languages: form.languages,
+            tags: form.tags,
+            tone: form.tone,
+            scenarioFit: form.scenarioFit,
+            dominantEmotion: form.dominantEmotion || undefined,
+            energyLevel: form.energyLevel || undefined,
+            hasTextOverlay: form.hasTextOverlay,
+            ocrText: form.ocrText.trim() || undefined,
+            rarity: form.rarity,
+            useCase: form.useCase.trim() || undefined,
+            moderationNotes: form.moderationNotes.trim() || undefined,
+            isLive: form.isLive,
+          }
+        : {
+            sourceUrl: current.url,
+            title: form.title.trim(),
+            description: form.description.trim() || undefined,
+            category: form.category,
+            subCategory: form.subCategory.trim() || undefined,
+            languages: form.languages,
+            tags: form.tags,
+            tone: form.tone,
+            scenarioFit: form.scenarioFit,
+            dominantEmotion: form.dominantEmotion || undefined,
+            energyLevel: form.energyLevel || undefined,
+            hasTextOverlay: form.hasTextOverlay,
+            ocrText: form.ocrText.trim() || undefined,
+            rarity: form.rarity,
+            useCase: form.useCase.trim() || undefined,
+            moderationNotes: form.moderationNotes.trim() || undefined,
+            isLive: form.isLive,
+            sourceName: "stickerly_scrape",
+          };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceUrl: current.url,
-          title: form.title.trim(),
-          description: form.description.trim() || undefined,
-          category: form.category,
-          subCategory: form.subCategory.trim() || undefined,
-          languages: form.languages,
-          tags: form.tags,
-          tone: form.tone,
-          scenarioFit: form.scenarioFit,
-          dominantEmotion: form.dominantEmotion || undefined,
-          energyLevel: form.energyLevel || undefined,
-          hasTextOverlay: form.hasTextOverlay,
-          ocrText: form.ocrText.trim() || undefined,
-          rarity: form.rarity,
-          useCase: form.useCase.trim() || undefined,
-          moderationNotes: form.moderationNotes.trim() || undefined,
-          isLive: form.isLive,
-          sourceName: "stickerly_scrape",
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.status === 409) {

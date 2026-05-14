@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Images } from "lucide-react";
+import { useIngestStore } from "@/lib/ingest-store";
 
 interface Sticker {
   id: string;
@@ -18,6 +19,7 @@ interface Sticker {
   cloudinaryUrl: string;
   thumbnailUrl: string;
   type: string;
+  verifiedBy?: string | null;
 }
 
 interface UploadResult {
@@ -49,6 +51,7 @@ const rarityClass = (r: string) => {
 export default function StickerGrid({ stickers: initial }: StickerGridProps) {
   const [stickers] = useState(initial);
   const router = useRouter();
+  const { setQueue } = useIngestStore();
 
   async function handleUpload(result: UploadResult) {
     const type =
@@ -75,6 +78,43 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
     if (res.ok) router.refresh();
   }
 
+  function handleReview(results: UploadResult[]) {
+    if (results.length === 0) return;
+    const now = Date.now();
+    const queue = results.map((r, idx) => {
+      const isAnimated = r.resource_type === "video" || r.format === "gif";
+      const fileName = r.public_id.split("/").pop() ?? r.public_id;
+      const cloudType: "image" | "gif" | "video" =
+        r.resource_type === "video"
+          ? "video"
+          : r.format === "gif"
+            ? "gif"
+            : "image";
+      return {
+        packId: `manual-${now}`,
+        packName: "Manual Upload",
+        authorName: "Admin",
+        file: fileName,
+        url: r.secure_url,
+        sha: r.public_id,
+        isAnimated,
+        isDuplicate: false,
+        sourceType: "manual" as const,
+        cloudinary: {
+          url: r.secure_url,
+          thumbnailUrl: r.thumbnail_url,
+          type: cloudType,
+          width: r.width,
+          height: r.height,
+          bytes: r.bytes,
+          duration: r.duration,
+        },
+      };
+    });
+    setQueue(queue);
+    router.push("/admin/ingest/review");
+  }
+
   return (
     <div>
       {/* Header */}
@@ -88,7 +128,7 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
             </p>
           </div>
         </div>
-        <StickerUploader onUpload={handleUpload} />
+        <StickerUploader onUpload={handleUpload} onReview={handleReview} />
       </div>
 
       {stickers.length === 0 ? (
@@ -140,6 +180,11 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
                   >
                     {s.isLive ? "Live" : "Draft"}
                   </Badge>
+                  {s.verifiedBy && (
+                    <span className="inline-flex items-center rounded-full border border-border px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                      {s.verifiedBy}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
