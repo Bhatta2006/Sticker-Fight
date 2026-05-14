@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { CldUploadWidget } from "next-cloudinary";
 import { useIngestStore, StickerItem } from "@/lib/ingest-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import {
   AlertCircle,
   Loader2,
   ShoppingBag,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +51,19 @@ interface StickerlyPack {
 const SORT_OPTIONS = ["RECOMMENDED", "POPULAR", "NEWEST"] as const;
 const TYPE_OPTIONS = ["ALL", "STATIC", "ANIMATED"] as const;
 const SEARCH_BY_OPTIONS = ["ALL", "NAME", "AUTHOR", "TAG"] as const;
+const STICKERS_FOLDER = "sticker-fight/stickers";
+
+interface UploadResult {
+  public_id: string;
+  secure_url: string;
+  thumbnail_url: string;
+  format: string;
+  width: number;
+  height: number;
+  bytes: number;
+  duration?: number;
+  resource_type: string;
+}
 
 export default function IngestSearchClient() {
   const router = useRouter();
@@ -63,6 +78,10 @@ export default function IngestSearchClient() {
   const [minCount, setMinCount] = useState(5);
   const [extendSearch, setExtendSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Manual upload (local) flow
+  const [uploading, setUploading] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<UploadResult[]>([]);
 
   // Results
   const [packs, setPacks] = useState<StickerlyPack[]>([]);
@@ -188,6 +207,51 @@ export default function IngestSearchClient() {
     router.push("/admin/ingest/review");
   };
 
+  const handleManualReview = (results: UploadResult[]) => {
+    if (results.length === 0) return;
+    const now = Date.now();
+    const queue: StickerItem[] = results.map((r) => {
+      const isAnimated = r.resource_type === "video" || r.format === "gif";
+      const fileName = r.public_id.split("/").pop() ?? r.public_id;
+      const cloudType: "image" | "gif" | "video" =
+        r.resource_type === "video"
+          ? "video"
+          : r.format === "gif"
+            ? "gif"
+            : "image";
+      return {
+        packId: `manual-${now}`,
+        packName: "Manual Upload",
+        authorName: "Admin",
+        file: fileName,
+        url: r.secure_url,
+        sha: r.public_id,
+        isAnimated,
+        isDuplicate: false,
+        sourceType: "manual",
+        cloudinary: {
+          url: r.secure_url,
+          thumbnailUrl: r.thumbnail_url,
+          type: cloudType,
+          width: r.width,
+          height: r.height,
+          bytes: r.bytes,
+          duration: r.duration,
+        },
+      };
+    });
+    setQueue(queue);
+    router.push("/admin/ingest/review");
+  };
+
+  const removePendingUpload = (publicId: string) => {
+    setPendingUploads((prev) => prev.filter((u) => u.public_id !== publicId));
+  };
+
+  const clearPendingUploads = () => setPendingUploads([]);
+
+  const reviewPendingUploads = () => handleManualReview(pendingUploads);
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -214,6 +278,135 @@ export default function IngestSearchClient() {
       {/* Search bar */}
       <Card>
         <CardContent className="pt-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Upload local stickers
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Upload files, then review them in Step 2
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearPendingUploads}
+                disabled={pendingUploads.length === 0}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                onClick={reviewPendingUploads}
+                disabled={pendingUploads.length === 0}
+                className="gap-2"
+              >
+                Review {pendingUploads.length}
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+              <CldUploadWidget
+                signatureEndpoint="/api/sign-cloudinary-params"
+                options={{
+                  folder: STICKERS_FOLDER,
+                  resourceType: "auto",
+                  multiple: true,
+                  maxFiles: 20,
+                  clientAllowedFormats: [
+                    "jpg",
+                    "jpeg",
+                    "png",
+                    "gif",
+                    "webp",
+                    "mp4",
+                    "mov",
+                  ],
+                  maxFileSize: 20000000,
+                  sources: ["local", "url", "google_drive"],
+                  showAdvancedOptions: false,
+                  cropping: false,
+                  showSkipCropButton: false,
+                }}
+                onOpen={() => {
+                  setUploading(true);
+                }}
+                onClose={() => {
+                  setUploading(false);
+                }}
+                onSuccess={(result) => {
+                  const info = result.info as {
+                    public_id: string;
+                    secure_url: string;
+                    format: string;
+                    width: number;
+                    height: number;
+                    bytes: number;
+                    duration?: number;
+                    resource_type: string;
+                  };
+
+                  const payload: UploadResult = {
+                    public_id: info.public_id,
+                    secure_url: info.secure_url,
+                    thumbnail_url: info.secure_url,
+                    format: info.format,
+                    width: info.width,
+                    height: info.height,
+                    bytes: info.bytes,
+                    duration: info.duration,
+                    resource_type: info.resource_type,
+                  };
+
+                  setPendingUploads((prev) => [...prev, payload]);
+                }}
+              >
+                {({ open }) => (
+                  <Button
+                    onClick={() => open()}
+                    disabled={uploading}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload
+                  </Button>
+                )}
+              </CldUploadWidget>
+            </div>
+          </div>
+
+          {pendingUploads.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                Selected uploads ({pendingUploads.length})
+              </p>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+                {pendingUploads.map((u) => (
+                  <button
+                    key={u.public_id}
+                    type="button"
+                    onClick={() => removePendingUpload(u.public_id)}
+                    className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                    title="Remove"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={u.thumbnail_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                    <span className="absolute top-1 right-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white opacity-0 group-hover:opacity-100">
+                      remove
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
