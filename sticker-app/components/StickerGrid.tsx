@@ -387,9 +387,9 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
       )}
 
       {active && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 bg-black/50">
           <div
-            className="w-full max-w-4xl overflow-hidden rounded-xl border border-border bg-background shadow-lg"
+            className="h-full w-full overflow-hidden bg-background sm:mx-auto sm:my-6 sm:h-auto sm:max-w-4xl sm:rounded-xl sm:border sm:border-border sm:shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -408,8 +408,8 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[260px_1fr]">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-4 p-4 sm:max-h-[80vh] sm:grid-cols-[260px_1fr] sm:overflow-hidden">
+              <div className="space-y-2 sm:pr-2">
                 <div className="aspect-square rounded-lg border border-border bg-muted overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -423,12 +423,12 @@ export default function StickerGrid({ stickers: initial }: StickerGridProps) {
                 </div>
               </div>
 
-              <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
+              <div className="max-h-[50vh] overflow-auto rounded-lg border border-border sm:max-h-[70vh]">
                 <div className="divide-y divide-border">
                   {detailRows(active).map(([label, value]) => (
                     <div
                       key={label}
-                      className="grid grid-cols-1 gap-1 px-3 py-2 md:grid-cols-[180px_1fr]"
+                      className="grid grid-cols-1 gap-1 px-3 py-2 sm:grid-cols-[180px_1fr]"
                     >
                       <div className="text-xs font-medium text-muted-foreground">
                         {label}
